@@ -3,9 +3,34 @@ import pandas as pd
 import plotly.express as px
 import dash_bootstrap_components as dbc
 
-data = pd.read_csv("olimpiadas.csv")
+# Cargar el conjunto de datos
+data = pd.read_csv("athlete_events.csv")
 data = data.dropna(subset=['Weight', 'Height','Age'])
+data_region = pd.read_csv("noc_regions.csv")
 
+
+def medal(df,df2,pais):
+    dt = pd.merge(df, df2, on='NOC', how='left')
+    medals = pd.get_dummies(dt['Medal'])
+    dt = pd.concat([dt, medals], axis=1)
+    country = pais
+    table = pd.pivot_table(dt[dt['region'] == country], values=['Gold', 'Silver', 'Bronze'], index=['ID', 'Name'], aggfunc=sum, fill_value=0)
+    table['Total'] = table.sum(axis=1)
+    top_10 = table.sort_values(by=['Gold', 'Silver', 'Bronze'], ascending=[False, False, False]).head(10)
+    top_10 = top_10.iloc[::-1]
+    return top_10[['Gold', 'Silver', 'Bronze']].reset_index().melt(id_vars=['ID', 'Name'], value_vars=['Gold', 'Silver', 'Bronze'], var_name='Medal', value_name='Count')
+
+def plot_medallero(df,pais):
+    colors = {'Gold': '#ffd700', 'Silver': '#c0c0c0', 'Bronze': '#cd7f32'}
+    medallero = px.bar(df, 
+                        x='Count', 
+                        y='Name', 
+                        orientation='h', 
+                        color='Medal', 
+                        color_discrete_map=colors, 
+                        title=f'Top 10 {pais} Athletes with the Most Olympic Medals')
+    return medallero
+ 
 
 def sex(df, season):
     return df[df['Season'] == season].groupby(['Year', 'Sex'])['Sex'].count().unstack()
@@ -33,34 +58,56 @@ def plot_burbujas(df, season):
         size_max=50)
     return scatter
 
-app = Dash(__name__)
+app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 app.layout = dbc.Container(
     children=[
-        dbc.Row(
-            [
-                dbc.Col(
+            dbc.Row(dbc.Col(html.H1("Dashboard analítico de Olimpiadas (120 años)", style={"textAlign": "center","color": "blue"}))),                             # titulo
+            dbc.Row(dbc.Col(html.H1("Descripcion de dataframe y objetivo del dashhboard", style={"textAlign": "center","color": "black","font-size": "20px"}))),  # detalle de objetivo del dashhboard
+    
+            dbc.Row(
                     [
-                        html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas"),
-                        dcc.Graph(id="id_timeline", figure=plot_timeline(data,"Summer")),
-                        dcc.RadioItems( 
-                            id='season-radio',
-                            options=[{'label': 'Winter', 'value': 'Winter'},
-                                     {'label': 'Summer', 'value': 'Summer'}],
-                            value='Summer'
-                        )
-                    ],
-                    width=7,
-                ),
-                dbc.Col(
-                    [
-                      html.H1("Cositar olimpiadas"),
-                      dcc.Graph(id="id_burbujas", figure=plot_burbujas(data,"Summer")),
+                        dbc.Col(
+                            [
+                                html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                                
+                            
+                            ],
+                            width=4,
+                        ),
+                        dbc.Col(
+                            [
+                            html.H1("Cositar olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                            dcc.Graph(id="id_medallero", figure=plot_medallero(medal(data,data_region,"Argentina"), "Argentina")),
+                            ]
+                        ),
                     ]
                 ),
-            ]
-        ),
+    
+            dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                                dcc.Graph(id="id_timeline", figure=plot_timeline(data,"Summer")),
+                                dcc.RadioItems( 
+                                    id='season-radio',
+                                    options=[{'label': 'Winter', 'value': 'Winter'},
+                                            {'label': 'Summer', 'value': 'Summer'}],
+                                    value='Summer'
+                                )
+                            ],
+                            width=4,
+                        ),
+                        dbc.Col(
+                            [
+                            html.H1("Cositar olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                            dcc.Graph(id="id_burbujas", figure=plot_burbujas(data,"Summer")),
+                            ]
+                        ),
+                    ]
+                ),
     ],
 )
 
@@ -69,8 +116,7 @@ app.layout = dbc.Container(
 
 def update_season(season):
     timeline = plot_timeline(data, season)
-    burbujas = plot_burbujas(data, season)
-    return timeline, burbujas
+    return timeline
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port="5000")
