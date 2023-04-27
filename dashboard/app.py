@@ -4,6 +4,11 @@ import plotly.express as px
 import dash_bootstrap_components as dbc
 from plotly.offline import iplot
 import plotly.figure_factory as ff
+import plotly.graph_objs as go
+from plotly import tools
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+init_notebook_mode(connected=True)
+import plotly.express as px
 
 # Cargar el conjunto de datos
 data = pd.read_csv("athlete_events.csv")
@@ -94,6 +99,68 @@ def histograma_imc(df):
     fig['layout'].update(title='Athlets IMC distribution plot')
     return fig
 
+def deportes(df):
+    sports = (df.groupby(['Sport'])['Sport'].nunique()).index
+    return sports
+
+def draw_trace(dataset, sport):
+    df = dataset[dataset['Sport']==sport];
+    trace = go.Box(
+        x = df['Age'],
+        name=sport,
+        marker=dict(
+                    line=dict(
+                    color='black',
+                    width=0.8),
+                ),
+        text=df['City'], 
+        orientation = 'h'
+    )
+    return trace
+
+def draw_group(df,season, title,height=800):
+    df_S = df[df['Season']==season]
+    tmp = df_S.groupby(['Year', 'City','Season', 'Age'])['Sport'].value_counts()
+    df1 = pd.DataFrame(data={'Athlets': tmp.values}, index=tmp.index).reset_index()
+    data = list()
+    sports = deportes(df_S)
+    sports=sorted(sports, reverse=True)
+    
+    for sport in sports:
+        data.append(draw_trace(df1, sport))
+
+
+    layout = dict(title = "Age of athletes per Sport" ,
+              xaxis = dict(title = 'Age',showticklabels=True),
+              yaxis = dict(title = 'Sport'+' '+season, showticklabels=True, tickfont=dict(
+                family='Old Standard TT, serif',
+                size=8,
+                color='black'),), 
+              hovermode = 'closest',
+              showlegend=False,
+                  width=800,
+                  height=height,
+             )
+    fig = dict(data=data, layout=layout)
+    return fig
+
+#def draw_boxplot(df,season):
+#    df_S = df[df['Season']==season]
+#    fig = px.box(df_S, x="Age", y="Sport", color="Season", orientation="h")
+#    fig.update_layout(
+#        title="Age Distribution by Sport and Season",
+#        xaxis_title="Age",
+#        yaxis_title="Sport",
+#        font=dict(
+#            family="Old Standard TT, serif",
+#            size=12,
+#            color="black"
+#        ),
+#        height=800,
+#    )
+#    return fig
+
+
 app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
@@ -134,7 +201,7 @@ app.layout = dbc.Container(
                         dbc.Col(
                             [
                                 html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
-                                dcc.Graph(id="id_boxplot", figure=histograma_imc(imc(data))),
+                                dcc.Graph(id="id_histograma", figure=histograma_imc(imc(data))),
                             
                             ],
                             width=4,
@@ -147,11 +214,11 @@ app.layout = dbc.Container(
                 [
                     dbc.Col(
                             [
-                                html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
-                                dcc.Graph(id="id_boxplot", figure=histograma_imc(imc(data))),
+                            html.H1("Boxplot", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                            dcc.Graph(id="id_boxplot", figure=draw_group(data,"Summer","cositas")),    
                             
                             ],
-                            width=4,
+                            width=7,
                         ),
 
                     dbc.Col(
@@ -165,7 +232,6 @@ app.layout = dbc.Container(
                                     value='Summer'
                                 )
                             ],
-                            width=4,
                         ),
                 ]
             ),
