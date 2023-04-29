@@ -14,17 +14,23 @@ import plotly.express as px
 data = pd.read_csv("athlete_events.csv")
 data = data.dropna(subset=['Weight', 'Height','Age'])
 data_region = pd.read_csv("noc_regions.csv")
+paises_unicos = data_region['region'].unique().tolist()
 
-def world(df, df2, season):
+def world(df, df2, season, medalla):
     data = pd.merge(df, df2, on='NOC', how='left')
-    summer_gold_df = data.loc[(data['Season'] == season) & (data['Medal'] == 'Gold')]
+    summer_gold_df = data.loc[(data['Season'] == season) & (data['Medal'] == medalla)]
     gold_medals_df = summer_gold_df.groupby(['Year', 'region', 'Event']).agg({'Medal': 'count'}).reset_index()
-    gold_medals_df['Gold Medals'] = gold_medals_df['Medal'] >= 1
-    gold_medals_by_region_df = gold_medals_df.groupby(['Year', 'region']).agg({'Gold Medals': 'sum'}).reset_index()
+    gold_medals_df['N° Medals'] = gold_medals_df['Medal'] >= 1
+    gold_medals_by_region_df = gold_medals_df.groupby(['Year', 'region']).agg({'N° Medals': 'sum'}).reset_index()
     return gold_medals_by_region_df
 
 def plot_world(df):
-    geo_world = px.scatter_geo(df, locations='region', locationmode='country names', size='Gold Medals', color='Gold Medals', projection='natural earth', animation_frame='Year')
+    #geo_world = px.choropleth(df, locations='region', locationmode='country names', size='N° Medals', color='N° Medals', projection='natural earth', animation_frame='Year', title=f'Distribución de medallas por año')
+    geo_world = px.choropleth(df, locations='region', locationmode='country names', color='N° Medals', projection='natural earth', animation_frame='Year', title=f'Distribución de medallas por año')  
+    geo_world.update_layout(
+        height=800,
+        width=1000,
+    )
     return geo_world
 
 def medal(df, df2, pais, season):
@@ -47,7 +53,7 @@ def plot_medallero(df,pais):
                         orientation='h', 
                         color='Medal', 
                         color_discrete_map=colors, 
-                        title=f'Top 10 {pais} Athletes with the Most Olympic Medals')
+                        title=f'Medallero olímpico Top 10 {pais} ')
     return medallero
  
 
@@ -96,7 +102,7 @@ def histograma_imc(df):
     group_labels = ['Female IMC', 'Male IMC']
 
     fig = ff.create_distplot(hist_data, group_labels, show_hist=True, show_rug=False)
-    fig['layout'].update(title='Athlets IMC distribution plot')
+    fig['layout'].update(title='Distribución de IMC de atletas')
     return fig
 
 def deportes(df):
@@ -130,9 +136,9 @@ def draw_group(df,season, title,height=800):
         data.append(draw_trace(df1, sport))
 
 
-    layout = dict(title = "Age of athletes per Sport" ,
-              xaxis = dict(title = 'Age',showticklabels=True),
-              yaxis = dict(title = 'Sport'+' '+season, showticklabels=True, tickfont=dict(
+    layout = dict(title = "Edad de atletas por deporte" ,
+              xaxis = dict(title = 'Edad',showticklabels=True),
+              yaxis = dict(title = 'Deporte'+' '+season, showticklabels=True, tickfont=dict(
                 family='Old Standard TT, serif',
                 size=8,
                 color='black'),), 
@@ -166,41 +172,64 @@ server = app.server
 
 app.layout = dbc.Container(
     children=[
-            dbc.Row(dbc.Col(html.H1("Dashboard analítico de Olimpiadas (120 años)", style={"textAlign": "center","color": "blue"}))),                             # titulo
-            dbc.Row(dbc.Col(html.H1("Descripcion de dataframe y objetivo del dashhboard", style={"textAlign": "center","color": "black","font-size": "20px"}))),  # detalle de objetivo del dashhboard
-    
+            dbc.Row(dbc.Col(html.H1("Dashboard analítico de Olimpiadas (120 años)", style={"textAlign": "center","color": "black"}))),                             # titulo
+            dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
+            dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
+            dbc.Row(dbc.Col(html.H1("Visualización de análisis de set de datos históricos de los Juegos Olimpicos desde Atenas 1896 a Rio 2016 ", style={"textAlign": "center","color": "black","font-size": "15px"}))),  # detalle de objetivo del dashhboard
+            dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
+            dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
+            dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
+
             dbc.Row(
                     [
                         dbc.Col(
                             [
-                                html.H1("Mapa coropletico", style={"textAlign": "center","color": "black","font-size": "20px"}),
-                                dcc.Graph(id="id_geoworld", figure=plot_world(world(data, data_region, "Summer")))
+                            html.H1("Distribución de medallas por el mundo anualmente",style={"textAlign": "center","color": "black","font-size": "30px"}),
+                            dcc.RadioItems( 
+                                    id='medalla-radio',
+                                    options=[{'label': 'Gold', 'value': 'Gold'},
+                                            {'label': 'Silver', 'value': 'Silver'},
+                                            {'label': 'Bronze', 'value': 'Bronze'}],
+                                    value='Gold'),
+                            dcc.Graph(id="id_geoworld", figure=plot_world(world(data, data_region, "Summer","Gold")))
                             
                             ],
-                            width=7,
                         ),
-                        dbc.Col(
+                        
+                    ]
+                ),
+            dbc.Row(
+                [
+                    dbc.Col(
                             [
-                            html.H1("Cositar olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                            dcc.Dropdown(
+                                    id='id_dropdown', 
+                                    options=paises_unicos, 
+                                    value="Chile"),
                             dcc.Graph(id="id_medallero", figure=plot_medallero(medal(data,data_region,"Argentina","Summer"), "Argentina")),
                             ]
                         ),
-                    ]
-                ),
-    
+                ]
+            ),
             dbc.Row(
                     [
                         
                         dbc.Col(
                             [
-                            html.H1("Cositar olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                            dcc.RadioItems( 
+                                    id='season-radio',
+                                    options=[{'label': 'Winter', 'value': 'Winter'},
+                                            {'label': 'Summer', 'value': 'Summer'}],
+                                    value='Summer'
+                                ),
+                            html.H1("Scatter", style={"textAlign": "center","color": "black","font-size": "20px"}),
                             dcc.Graph(id="id_burbujas", figure=plot_burbujas(data,"Summer")),
                             ]
                         ),
 
                         dbc.Col(
                             [
-                                html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
+                                html.H1("Distribución", style={"textAlign": "center","color": "black","font-size": "20px"}),
                                 dcc.Graph(id="id_histograma", figure=histograma_imc(imc(data))),
                             
                             ],
@@ -225,31 +254,29 @@ app.layout = dbc.Container(
                             [
                                 html.H1("Tendencia de Participación Hombres y Mujeres en Olimpiadas", style={"textAlign": "center","color": "black","font-size": "20px"}),
                                 dcc.Graph(id="id_timeline", figure=plot_timeline(data,"Summer")),
-                                dcc.RadioItems( 
-                                    id='season-radio',
-                                    options=[{'label': 'Winter', 'value': 'Winter'},
-                                            {'label': 'Summer', 'value': 'Summer'}],
-                                    value='Summer'
-                                )
+                                
                             ],
                         ),
                 ]
             ),
+            
     ],
 )
 
 @app.callback(
-            [Output('id_timeline', 'figure'),
-            Output('id_medallero', 'figure'),
-            Output('id_burbujas', 'figure'),
-            Output('id_geoworld', 'figure')],
-            [Input('season-radio', 'value')])
+    [Output('id_timeline', 'figure'),
+     Output('id_medallero', 'figure'),
+     Output('id_burbujas', 'figure'),
+     Output('id_geoworld', 'figure')],
+    [Input('season-radio', 'value'),
+     Input('id_dropdown', 'value'),
+     Input('medalla-radio', 'value')])
 
-def update_season(season):
+def update(season, pais, medalla):
     timeline = plot_timeline(data, season)
-    medallero = plot_medallero(medal(data, data_region, "Argentina", season), "Argentina")
+    medallero = plot_medallero(medal(data, data_region, pais, season), pais)
     burbujas = plot_burbujas(data, season)
-    geo_world = plot_world(world(data, data_region, season))
+    geo_world = plot_world(world(data, data_region, season, medalla))
     return timeline, medallero, burbujas, geo_world
 
 if __name__ == "__main__":
