@@ -102,7 +102,7 @@ def histograma_imc(df):
     group_labels = ['Female IMC', 'Male IMC']
 
     fig = ff.create_distplot(hist_data, group_labels, show_hist=True, show_rug=False)
-    fig['layout'].update(title='Distribución de IMC de atletas')
+    fig['layout'].update(title='Distribución de IMC de atletas', width = 700, height= 500)
     return fig
 
 def deportes(df):
@@ -136,15 +136,15 @@ def draw_group(df,season,height=800):
         data.append(draw_trace(df1, sport))
 
 
-    layout = dict(title = "Edad de atletas por deporte" ,
+    layout = dict(title = "Edad de atletas por deporte en temporada "+season ,
               xaxis = dict(title = 'Edad',showticklabels=True),
-              yaxis = dict(title = 'Deporte'+' '+season, showticklabels=True, tickfont=dict(
+              yaxis = dict( showticklabels=True, tickfont=dict(
                 family='Old Standard TT, serif',
                 size=8,
                 color='black'),), 
               hovermode = 'closest',
               showlegend=False,
-                  width=600,
+                  width=700,
                   height=height,
              )
     fig = dict(data=data, layout=layout)
@@ -171,6 +171,7 @@ app = Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 app.layout = dbc.Container(
+    #fluid=True,
     children=[
             dbc.Row(dbc.Col(html.H1("Dashboard analítico de Olimpiadas (120 años)", style={"textAlign": "center","color": "black"}))),                             # titulo
             dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
