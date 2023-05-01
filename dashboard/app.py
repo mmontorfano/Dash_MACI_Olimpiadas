@@ -124,7 +124,7 @@ def draw_trace(dataset, sport):
     )
     return trace
 
-def draw_group(df,season, title,height=800):
+def draw_group(df,season,height=800):
     df_S = df[df['Season']==season]
     tmp = df_S.groupby(['Year', 'City','Season', 'Age'])['Sport'].value_counts()
     df1 = pd.DataFrame(data={'Athlets': tmp.values}, index=tmp.index).reset_index()
@@ -144,7 +144,7 @@ def draw_group(df,season, title,height=800):
                 color='black'),), 
               hovermode = 'closest',
               showlegend=False,
-                  width=800,
+                  width=600,
                   height=height,
              )
     fig = dict(data=data, layout=layout)
@@ -244,7 +244,7 @@ app.layout = dbc.Container(
                     dbc.Col(
                             [
                             html.H1("Boxplot", style={"textAlign": "center","color": "black","font-size": "20px"}),
-                            dcc.Graph(id="id_boxplot", figure=draw_group(data,"Summer","cositas")),    
+                            dcc.Graph(id="id_boxplot", figure=draw_group(data,"Summer")),    
                             
                             ],
                             width=7,
@@ -267,7 +267,8 @@ app.layout = dbc.Container(
     [Output('id_timeline', 'figure'),
      Output('id_medallero', 'figure'),
      Output('id_burbujas', 'figure'),
-     Output('id_geoworld', 'figure')],
+     Output('id_geoworld', 'figure'),
+    Output('id_boxplot', 'figure')],
     [Input('season-radio', 'value'),
      Input('id_dropdown', 'value'),
      Input('medalla-radio', 'value')])
@@ -277,7 +278,8 @@ def update(season, pais, medalla):
     medallero = plot_medallero(medal(data, data_region, pais, season), pais)
     burbujas = plot_burbujas(data, season)
     geo_world = plot_world(world(data, data_region, season, medalla))
-    return timeline, medallero, burbujas, geo_world
+    boxplot = draw_group(data, season)
+    return timeline, medallero, burbujas, geo_world, boxplot
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port="5000")
+    app.run_server(debug=True, host="0.0.0.0", port="8000")
