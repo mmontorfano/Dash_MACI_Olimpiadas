@@ -15,7 +15,7 @@ data = pd.read_csv("athlete_events.csv")
 data = data.dropna(subset=['Weight', 'Height','Age'])
 data_region = pd.read_csv("noc_regions.csv")
 paises_unicos = sorted(data_region['region'].dropna().unique().tolist())
-#deportes_unicos = data['Sport'].unique().tolist()
+
 
 def world(df, df2, season, medalla):
     data = pd.merge(df, df2, on='NOC', how='left')
@@ -26,12 +26,10 @@ def world(df, df2, season, medalla):
     return gold_medals_by_region_df
 
 def plot_world(df):
-    #geo_world = px.choropleth(df, locations='region', locationmode='country names', size='N° Medals', color='N° Medals', projection='natural earth', animation_frame='Year', title=f'Distribución de medallas por año')
     geo_world = px.choropleth(df, locations='region', locationmode='country names', color='N° Medals', projection='equirectangular', animation_frame='Year')
     geo_world.update_layout(
         height=450,
         width=750,
-       # plot_bgcolor='white',
         paper_bgcolor='#F4FAFD'
     )
     return geo_world
@@ -70,7 +68,7 @@ def plot_timeline(df, season):
         data_frame=sex(df, season),
         x=sex(df, season).index,
         y=['F', 'M']
-        , width=800, height=550).update_layout(xaxis_title="Años", yaxis_title="Cantidad de participantes",legend_orientation='h')
+        , width=650, height=550).update_layout(xaxis_title="Años", yaxis_title="Cantidad de participantes",legend_orientation='h')
     timeline.update_layout(paper_bgcolor='#D5E0E0')
     timeline.update_layout(legend=dict(
     orientation="h",
@@ -89,7 +87,6 @@ def plot_timeline(df, season):
 
 def burbujas(df, season):
     data1 = df[df['Season']==season].groupby('Sport').agg({"ID":"count", "Height": "mean","Weight":"mean", "Age":"mean" })
-    #data1['IMC'] = data1['Weight'] / ((data1['Height']/100)**2)
     return data1
 
 def plot_burbujas(df, season):
@@ -97,10 +94,10 @@ def plot_burbujas(df, season):
         data_frame=burbujas(df, season),
         x='Weight',
         y='Height',
-        size='Age',
+        size='ID',
         color= burbujas(df, season).index,
         hover_name=burbujas(df, season).index,
-        size_max=25).update_layout(xaxis_title="Peso", yaxis_title="Altura")
+        size_max=50).update_layout(xaxis_title="Peso", yaxis_title="Altura")
     scatter.update_layout(paper_bgcolor='#D1ECFA')
     return scatter
 
@@ -111,7 +108,8 @@ def imc(df):
 def dis_olim(df,season, sport):
     etiquetas = {'F': 'Femenino', 'M': 'Masculino'}
     dff = df[(df['Season'] == season) & (df['Sport'] == sport)]
-    fig = px.histogram(dff, x='Age',color='Sex', animation_frame='Year', nbins=30,color_discrete_map = {'F':'#AE62B5','M':'#40704E'}, width=800, height=550)
+    dff = dff.sort_values(by='Year', ascending=False)
+    fig = px.histogram(dff, x='Age',color='Sex', animation_frame='Year', nbins=30,color_discrete_map = {'F':'#AE62B5','M':'#40704E'}, width=600, height=550)
     fig.update_layout(paper_bgcolor='#D5E0E0',xaxis_title="Edad", yaxis_title="Cantidad de participantes")
     fig.update_layout(legend=dict(
         orientation="h",
@@ -129,76 +127,16 @@ def sports_season(data, season):
     deportes_season = data[data['Season']==season]['Sport'].unique().tolist()
     return sorted(deportes_season)
 
-#def histograma_imc(df):
-#    fig = px.histogram(data_frame=imc(df), x='IMC', color='Sex', nbins=50, marginal='rug',
-#                        labels={'IMC': 'Indice de Masa Corporal (IMC)'},
-#                        title='Distribución del IMC para Hombres y Mujeres')
-#    return fig
-
-def histograma_imc(df,sports):
-
-    female_h = df[(df['Sex'] == 'F') & (df['Sport'] == sports)]['Age'].dropna()
-    male_h = df[(df['Sex'] == 'M') & (df['Sport'] == sports)]['Age'].dropna()
-
-    hist_data = [female_h, male_h]
-    group_labels = ['Female Age', 'Male Age']
-
-    fig = ff.create_distplot(hist_data, group_labels, animation_frame='Year',show_hist=True, show_rug=False).update_layout(xaxis_title="Años", yaxis_title=" ", legend=dict(yanchor="top", y=0.99, xanchor="left",x=0.6))
-    #fig['layout'].update(title='Distribución de IMC de atletas')
-    
-    return fig
 
 def deportes(df):
     sports = (df.groupby(['Sport'])['Sport'].nunique()).index
     return sports
 
-def draw_trace(dataset, sport):
-    df = dataset[dataset['Sport']==sport];
-    trace = go.Box(
-        x = df['Age'],
-        name=sport,
-        marker=dict(
-                    line=dict(
-                    color='black',
-                    width=0.8),
-                ),
-        text=df['City'],
-        orientation = 'h'
-    )
-    return trace
-
-def draw_group(df,season,height=800):
-    df_S = df[df['Season']==season]
-    tmp = df_S.groupby(['Year', 'City','Season', 'Age'])['Sport'].value_counts()
-    df1 = pd.DataFrame(data={'Athlets': tmp.values}, index=tmp.index).reset_index()
-    data = list()
-    sports = deportes(df_S)
-    sports=sorted(sports, reverse=True)
-
-    for sport in sports:
-        data.append(draw_trace(df1, sport))
-
-
-    layout = dict(
-            #title = "Edad de atletas por deporte" ,
-              xaxis = dict(title = 'Edad',showticklabels=True),
-              yaxis = dict(title = 'Deporte'+' '+season, showticklabels=True, tickfont=dict(
-                family='Old Standard TT, serif',
-                size=12,
-                color='black'),),
-              hovermode = 'closest',
-              showlegend=False,
-                  width=600,
-                  height=height,
-             )
-    fig = dict(data=data, layout=layout)
-    return fig
 
 def draw_boxplot(df,season):
    df_S = df[df['Season']==season]
    fig = px.box(df_S, x="Age", y="Sport", color="Season", orientation="h")
    fig.update_layout(
-       #title="Age Distribution by Sport and Season",
        xaxis_title="Edad",
        yaxis_title="Deporte",
        font=dict(
@@ -222,8 +160,10 @@ app.layout = dbc.Container(
 
                         dbc.Col(
                             [
-                            html.H1(".", style={"textAlign": "left","color": "#337BA0","font-size": "15px"}),
+                            html.H1(".", style={"textAlign": "left","color": "#337BA0","font-size": "5px"}),
                             html.H1("Dashboard analítico de Olimpiadas", style={"textAlign": "center","color": "white","font-size": "50px"}),
+                            html.H1("Enfocado en amantes de la historia deportiva y escolares interesados en datos relevantes de los JJ.OO", style={"textAlign": "center","color": "white","font-size": "18px"}),
+
                             ],width=6,
                             style={"background-color": "#337BA0"}
 
@@ -250,41 +190,10 @@ app.layout = dbc.Container(
                 ),
             dbc.Row(
                     [
-                        # html.H1("Dashboard analítico de Olimpiadas (120 años)", style={"textAlign": "center","color": "black","font-size": "30px"}),
-                        # html.H1("Visualización de análisis de set de datos históricos de los Juegos Olimpicos desde Atenas 1896 a Rio 2016 ", style={"textAlign": "center","color": "black","font-size": "15px"}),
-                        # html.H1("Se debe escoger la temporada en la cual se desarrollo el juego olímpico", style={"textAlign": "left","color": "black","font-size": "15px"}),
-                        # dcc.Dropdown(
-                        #         id='season-radio',
-                        #         options=[{'label': 'Winter', 'value': 'Winter'},
-                        #                 {'label': 'Summer', 'value': 'Summer'}],
-                        #         value='Summer',
-                        #         style={'width': '300px'}
-                        #             ),
-                        # html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}),
-
-                        # dbc.Col(
-                        #          [
-                        #         dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),
-                        #         dbc.Row(dbc.Col(html.H1("Dashboard analítico de Olimpiadas (120 años)", style={"textAlign": "center","color": "black","font-size": "30px"}))),                             # titulo
-                        #         dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
-                        #         dbc.Row(dbc.Col(html.H1("Visualización de análisis de set de datos históricos de los Juegos Olimpicos desde Atenas 1896 a Rio 2016 ", style={"textAlign": "center","color": "black","font-size": "15px"}))),  # detalle de objetivo del dashhboard
-                        #         dbc.Row(dbc.Col(html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}))),  # detalle de objetivo del dashhboard
-                        #         dbc.Row(dbc.Col(html.H1("Se debe escoger la temporada en la cual se desarrollo el juego olímpico", style={"textAlign": "left","color": "black","font-size": "15px"}))),  # detalle de objetivo del dashhboard
-
-                        #         dcc.Dropdown(
-                        #         id='season-radio',
-                        #         options=[{'label': 'Winter', 'value': 'Winter'},
-                        #                 {'label': 'Summer', 'value': 'Summer'}],
-                        #         value='Summer'
-                        #             ),
-                        #             ],width=2,
-                        # ),
-
+                        
                         dbc.Col(
                             [
-                           # html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}),  # detalle de objetivo del dashhboard
-                            html.H1("Distribución de medallas por el mundo",style={"textAlign": "left","color": "black","font-size": "25px","border-bottom": "1px solid black", "padding": "1px"}),
-                            #"backgroundColor": "darkgrey"
+                           html.H1("Distribución de medallas por el mundo",style={"textAlign": "left","color": "black","font-size": "25px","border-bottom": "1px solid black", "padding": "1px"}),
                             html.H1("Medallas por el mundo a través del tiempo ", style={"textAlign": "left","color": "black","font-size": "18px"}),
                             html.H1("Escoger el tipo de medalla para ver su evolución en el tiempo ", style={"textAlign": "left","color": "black","font-size": "12px"}),
                             dcc.RadioItems(
@@ -318,9 +227,8 @@ app.layout = dbc.Container(
                         ),
                         dbc.Col(
                             [
-                            #html.H1(".", style={"textAlign": "left","color": "white","font-size": "15px"}),
                             html.H1("Comparativos entre deportes", style={"textAlign": "left","color": "black","font-size": "25px","border-bottom": "1px solid black", "padding": "1px"}),
-                            html.H1("Comparación de peso, altura y edad", style={"textAlign": "left","color": "black","font-size": "18px"}),
+                            html.H1("Comparación de peso, altura y N° de participantes", style={"textAlign": "left","color": "black","font-size": "18px"}),
 
                                 dcc.Graph(id="id_burbujas", figure=plot_burbujas(data,"Summer")),
                             ],width=4,
@@ -346,13 +254,6 @@ app.layout = dbc.Container(
                         ),
                         dbc.Col(
                                 [
-                                # html.H1("Distribución de edad por deporte y genero", style={"textAlign": "center","color": "black","font-size": "25px"}),
-                                # html.H1("Escoger el deporte que desea analizar ", style={"textAlign": "left","color": "black","font-size": "15px"}),
-                                # dcc.Dropdown(
-                                #     id='id_dropdown_deporte',
-                                #     options=deportes_unicos,
-                                #     value="Cycling"),
-                                # dcc.Graph(id="id_histograma", figure=histograma_imc(imc(data),'Cycling')),
                                 html.H1(".", style={"textAlign": "left","color": "#D5E0E0","font-size": "25px","border-bottom": "1px solid black", "padding": "1px"}),
                                 html.H1("Distribución de edad por deporte y género", style={"textAlign": "left","color": "black","font-size": "18px"}),
                                 html.H1("Escoger el deporte que desea analizar ", style={"textAlign": "left","color": "black","font-size": "15px"}),
@@ -370,7 +271,7 @@ app.layout = dbc.Container(
 
                         dbc.Col(
                             [
-                            html.H1("Comparación de edad y su distribución", style={"textAlign": "left","color": "black","font-size": "18px"}),
+                            html.H1("Comparación de distribución de edad participantes", style={"textAlign": "left","color": "black","font-size": "18px"}),
                             dcc.Graph(id="id_boxplot", figure=draw_boxplot(data,"Summer")),
                             ],
                             width=4,
